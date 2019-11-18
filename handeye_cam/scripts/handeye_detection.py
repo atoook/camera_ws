@@ -29,13 +29,17 @@ class GUI():
         for i in range(self.argnum):
             self.min[i] = int(cv2.getTrackbarPos(self.type_name + self.param_name_list[i] + '_min', self.img_name))
             self.max[i] = int(cv2.getTrackbarPos(self.type_name + self.param_name_list[i] + '_max', self.img_name))
+        np.save(self.min,self.img_name + 'min')
+        np.save(self.max,self.img_name + 'min')
 
     def create_trackbar(self):
-        cv2.namedWindow(self.img_name, cv2.WINDOW_AUTOSIZE)
+        background = np.zeros((10,300,3), np.uint8)
+        cv2.namedWindow(self.img_name)
         #create trackbar
         for i in range(self.argnum):
             cv2.createTrackbar(self.type_name + self.param_name_list[i] + '_min', self.img_name, self.min[i], self.max_param[i], self.changeColor)
             cv2.createTrackbar(self.type_name + self.param_name_list[i] + '_max', self.img_name, self.max[i], self.max_param[i], self.changeColor)
+        cv2.imshow(self.img_name,background)
 
 class ColorExtract(object):
     def __init__(self,Lmask_MIN,Lmask_MAX,Umask_MIN,Umask_MAX):
@@ -49,8 +53,8 @@ class ColorExtract(object):
         self.Umask_MIN = Umask_MIN
         self.Umask_MAX = Umask_MAX
         #make instance to create trackbar
-        self.trackbar_mask1 = GUI('HANDEYE-SETTING','mask1--',['H','S','V'],np.array([180,255,255]),self.Lmask_MIN,self.Lmask_MAX)
-        self.trackbar_mask2 = GUI('HANDEYE-SETTING','mask2--',['H','S','V'],np.array([180,255,255]),self.Umask_MIN,self.Umask_MAX)
+        self.trackbar_mask1 = GUI('Handeye_setting','mask1--',['H','S','V'],np.array([180,255,255]),self.Lmask_MIN,self.Lmask_MAX)
+        self.trackbar_mask2 = GUI('Handeye_setting','mask2--',['H','S','V'],np.array([180,255,255]),self.Umask_MIN,self.Umask_MAX)
         self.trackbar_mask1.create_trackbar()
         self.trackbar_mask2.create_trackbar()
 
@@ -97,6 +101,7 @@ class ColorExtract(object):
             #publish msg
             self._msg.data = [i_centor,j_centor,red_area]
             self._msg_pub.publish(self._msg)   
+            print(self._msg.data)
 
             cv2.putText(red_image, str(red_area), (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
             cv2.circle(red_image, (i_centor,j_centor),10,(0,0,255),-1)
@@ -104,13 +109,9 @@ class ColorExtract(object):
         ##show the image of handeye
         cv2.namedWindow('handeye_extracted', cv2.WINDOW_AUTOSIZE)
         cv2.imshow('handeye_extracted', red_image)
-        cv2.waitKey(1)
-        # try:
-        #     self._red_pub.publish(self._bridge.cv2_to_imgmsg(red_image, 'bgr8'))
-        # except CvBridgeError, e:
-        #     print e
-
         rospy.loginfo('red=%d' % (red_area))
+
+        cv2.waitKey(1)
    
 if __name__ == '__main__':
     #define the initial HSV param for mask1&2
