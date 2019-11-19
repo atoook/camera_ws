@@ -17,5 +17,5 @@
 		<param name="io_method" value="mmap"/>
 	</node>
 
-	<node name="handeye_L" pkg="handeye_cam" type="handeye_detection.py"/>
+	<node name="handeye_L" pkg="handeye_cam" type="handeye_detection.py" cwd="node" output='screen'/>
 </launch>

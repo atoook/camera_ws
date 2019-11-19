@@ -3,6 +3,7 @@
 
 import rospy
 import cv2
+import glob
 import numpy as np
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
@@ -29,8 +30,7 @@ class GUI():
         for i in range(self.argnum):
             self.min[i] = int(cv2.getTrackbarPos(self.type_name + self.param_name_list[i] + '_min', self.img_name))
             self.max[i] = int(cv2.getTrackbarPos(self.type_name + self.param_name_list[i] + '_max', self.img_name))
-        np.save(self.min,self.img_name + 'min')
-        np.save(self.max,self.img_name + 'min')
+        self.save_track_parameter()
 
     def create_trackbar(self):
         background = np.zeros((10,300,3), np.uint8)
@@ -40,21 +40,34 @@ class GUI():
             cv2.createTrackbar(self.type_name + self.param_name_list[i] + '_min', self.img_name, self.min[i], self.max_param[i], self.changeColor)
             cv2.createTrackbar(self.type_name + self.param_name_list[i] + '_max', self.img_name, self.max[i], self.max_param[i], self.changeColor)
         cv2.imshow(self.img_name,background)
+    
+    def save_track_parameter(self):
+        np.save('./' + self.img_name + self.type_name + 'min.npy',self.min)
+        np.save('./' + self.img_name + self.type_name + 'max.npy',self.max)
 
 class ColorExtract(object):
-    def __init__(self,Lmask_MIN,Lmask_MAX,Umask_MIN,Umask_MAX):
+    def __init__(self):
         self._msg_pub = rospy.Publisher('/usb_cam/handeye_msg', Int32MultiArray, queue_size=10)
         # self._red_pub = rospy.Publisher('/red_image', Image, queue_size=1)
         self._image_sub = rospy.Subscriber('/usb_cam/image_raw', Image, self.callback)
         self._bridge = CvBridge()
         self._msg = Int32MultiArray()
-        self.Lmask_MIN = Lmask_MIN
-        self.Lmask_MAX = Lmask_MAX
-        self.Umask_MIN = Umask_MIN
-        self.Umask_MAX = Umask_MAX
+        img_name = 'Handeye_setting'
+        type_name1 = 'mask1--'
+        type_name2 = 'mask2--'
+        if(len(glob.glob('./'+img_name+ '*.npy')) == 4):
+            self.Lmask_MIN = np.load('./' + img_name + type_name1 + 'min.npy')
+            self.Lmask_MAX = np.load('./' + img_name + type_name1 + 'max.npy')
+            self.Umask_MIN = np.load('./' + img_name + type_name2 + 'min.npy')
+            self.Umask_MAX = np.load('./' + img_name + type_name2 + 'max.npy')
+        else:
+            self.Lmask_MIN = np.array([0,101,144])
+            self.Lmask_MAX = np.array([7,255,240])
+            self.Umask_MIN = np.array([170,160,104])
+            self.Umask_MAX = np.array([180,255,206])
         #make instance to create trackbar
-        self.trackbar_mask1 = GUI('Handeye_setting','mask1--',['H','S','V'],np.array([180,255,255]),self.Lmask_MIN,self.Lmask_MAX)
-        self.trackbar_mask2 = GUI('Handeye_setting','mask2--',['H','S','V'],np.array([180,255,255]),self.Umask_MIN,self.Umask_MAX)
+        self.trackbar_mask1 = GUI(img_name,type_name1,['H','S','V'],np.array([180,255,255]),self.Lmask_MIN,self.Lmask_MAX)
+        self.trackbar_mask2 = GUI(img_name,type_name2,['H','S','V'],np.array([180,255,255]),self.Umask_MIN,self.Umask_MAX)
         self.trackbar_mask1.create_trackbar()
         self.trackbar_mask2.create_trackbar()
 
@@ -104,6 +117,7 @@ class ColorExtract(object):
             print(self._msg.data)
 
             cv2.putText(red_image, str(red_area), (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
+            cv2.putText(red_image, '(' + str(i_centor - 640/2)+','+str(j_centor - 480/2) + ')', (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
             cv2.circle(red_image, (i_centor,j_centor),10,(0,0,255),-1)
 
         ##show the image of handeye
@@ -115,13 +129,10 @@ class ColorExtract(object):
    
 if __name__ == '__main__':
     #define the initial HSV param for mask1&2
-    Lmask_MIN = np.array([0,101,144])
-    Lmask_MAX = np.array([7,255,240])
-    Umask_MIN = np.array([170,160,104])
-    Umask_MAX = np.array([180,255,206])
+    rospy.loginfo('handeye_detection is started.....')
     #make instance to create trackbar
     rospy.init_node('color_extract')
-    color = ColorExtract(Lmask_MIN,Lmask_MAX,Umask_MIN,Umask_MAX)
+    color = ColorExtract()
     try:
         rospy.spin()
     except KeyboardInterrupt:
