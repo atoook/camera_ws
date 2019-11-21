@@ -46,12 +46,14 @@ class GUI():
         np.save('./' + self.img_name + self.type_name + 'max.npy',self.max)
 
 class ColorExtract(object):
-    def __init__(self):
+    def __init__(self,image_width,image_height):
         self._msg_pub = rospy.Publisher('/usb_cam/handeye_msg', Int32MultiArray, queue_size=10)
         # self._red_pub = rospy.Publisher('/red_image', Image, queue_size=1)
         self._image_sub = rospy.Subscriber('/usb_cam/image_raw', Image, self.callback)
         self._bridge = CvBridge()
         self._msg = Int32MultiArray()
+        self._image_width = image_width
+        self._image_height = image_height
         img_name = 'Handeye_setting'
         type_name1 = 'mask1--'
         type_name2 = 'mask2--'
@@ -117,7 +119,7 @@ class ColorExtract(object):
             print(self._msg.data)
 
             cv2.putText(red_image, str(red_area), (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
-            cv2.putText(red_image, '(' + str(i_centor - 640/2)+','+str(j_centor - 480/2) + ')', (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
+            cv2.putText(red_image, '(' + str(i_centor - self._image_width/2)+','+str(j_centor - self._image_height/2) + ')', (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (77, 255, 9), 2)
             cv2.circle(red_image, (i_centor,j_centor),10,(0,0,255),-1)
 
         ##show the image of handeye
@@ -132,7 +134,11 @@ if __name__ == '__main__':
     rospy.loginfo('handeye_detection is started.....')
     #make instance to create trackbar
     rospy.init_node('color_extract')
-    color = ColorExtract()
+    #############
+    image_width  = int(rospy.get_param('~image_width', '640'))
+    image_height = int(rospy.get_param('~image_height','480'))
+
+    color = ColorExtract(image_width,image_height)
     try:
         rospy.spin()
     except KeyboardInterrupt:

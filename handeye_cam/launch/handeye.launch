@@ -3,7 +3,7 @@
  -->
 <launch>
 
-	<arg name="video_device" default="/dev/video10" />
+	<arg name="video_device" default="/dev/video0" />
 	<arg name="image_width" default="640" />
 	<arg name="image_height" default="480" />
 
@@ -17,5 +17,8 @@
 		<param name="io_method" value="mmap"/>
 	</node>
 
-	<node name="handeye_L" pkg="handeye_cam" type="handeye_detection.py" cwd="node" output='screen'/>
+	<node name="handeye_L" pkg="handeye_cam" type="handeye_detection.py" cwd="node" output='screen'>
+		<param name="image_width" value="$(arg image_width)" />
+		<param name="image_height" value="$(arg image_height)"/>
+	</node>
 </launch>
