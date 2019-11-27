@@ -46,15 +46,17 @@ class GUI():
         np.save('./' + self.img_name + self.type_name + 'max.npy',self.max)
 
 class ColorExtract(object):
-    def __init__(self,image_width,image_height):
-        self._msg_pub = rospy.Publisher('/usb_cam/handeye_msg', Int32MultiArray, queue_size=10)
+    def __init__(self,LorR,image_width,image_height,isRotate):
+        self._LorR = LorR
+        self._msg_pub = rospy.Publisher('/usb_cam' + self._LorR + '/handeye_msg', Int32MultiArray, queue_size=10)
         # self._red_pub = rospy.Publisher('/red_image', Image, queue_size=1)
-        self._image_sub = rospy.Subscriber('/usb_cam/image_raw', Image, self.callback)
+        self._image_sub = rospy.Subscriber('/usb_cam' + self._LorR + '/image_raw', Image, self.callback)
         self._bridge = CvBridge()
         self._msg = Int32MultiArray()
         self._image_width = image_width
         self._image_height = image_height
-        img_name = 'Handeye_setting'
+        self._isRotate = isRotate
+        img_name = 'Handeye_setting' + self._LorR
         type_name1 = 'mask1--'
         type_name2 = 'mask2--'
         if(len(glob.glob('./'+img_name+ '*.npy')) == 4):
@@ -95,6 +97,10 @@ class ColorExtract(object):
             self.Umask_MIN, self.Umask_MAX = self.trackbar_mask2.get_param_as_tuple()
 
             cv_image = self._bridge.imgmsg_to_cv2(data, 'bgr8')
+
+            #if the camera is attached with rotated or not
+            if self._isRotate:
+                cv_image = cv2.rotate(cv_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         except CvBridgeError, e:
             print e
         
@@ -137,8 +143,9 @@ if __name__ == '__main__':
     #############
     image_width  = int(rospy.get_param('~image_width', '640'))
     image_height = int(rospy.get_param('~image_height','480'))
+    LorR        = str(rospy.get_param('~LorR','L'))
 
-    color = ColorExtract(image_width,image_height)
+    color = ColorExtract(LorR=LorR,image_width=image_width,image_height=image_height,isRotate=False)
     try:
         rospy.spin()
     except KeyboardInterrupt:
